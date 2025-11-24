@@ -4,7 +4,7 @@ import * as React from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { PrivyProvider } from '@privy-io/react-auth'
 import { SmartWalletsProvider } from '@privy-io/react-auth/smart-wallets'
-import { sepolia } from 'viem/chains'
+import { sepolia } from 'viem'
 
 const queryClient = new QueryClient()
 

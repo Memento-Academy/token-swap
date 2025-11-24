@@ -5,11 +5,11 @@ import { usePrivy } from '@privy-io/react-auth'
 import { useSmartWallets } from '@privy-io/react-auth/smart-wallets'
 import { formatUnits, createPublicClient, http, parseAbi } from 'viem'
 import { sepolia } from 'viem/chains'
-import { Wallet, Coins } from 'lucide-react'
+import { Wallet, Coins, Copy, Check } from 'lucide-react'
 
 // Token addresses on Sepolia
-const PEPE_ADDRESS = '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238' // Example PEPE on Sepolia
-const USDC_ADDRESS = '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238' // Example USDC on Sepolia
+const PEPE_ADDRESS = '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238'
+const USDC_ADDRESS = '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238'
 
 const ERC20_ABI = parseAbi([
   'function balanceOf(address owner) view returns (uint256)',
@@ -21,6 +21,7 @@ export function AccountInfo() {
   const { client } = useSmartWallets()
   const [pepeBalance, setPepeBalance] = useState<{ value: bigint, decimals: number } | null>(null)
   const [usdcBalance, setUsdcBalance] = useState<{ value: bigint, decimals: number } | null>(null)
+  const [copied, setCopied] = useState(false)
 
   // Get smart wallet address
   const smartWallet = user?.linkedAccounts?.find(
@@ -28,6 +29,14 @@ export function AccountInfo() {
   )
 
   const smartWalletAddress = smartWallet?.address as `0x${string}` | undefined
+
+  const copyAddress = () => {
+    if (smartWalletAddress) {
+      navigator.clipboard.writeText(smartWalletAddress)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
 
   useEffect(() => {
     if (!smartWalletAddress) return
@@ -57,7 +66,6 @@ export function AccountInfo() {
           args: [smartWalletAddress]
         })
 
-        // Assuming 18 decimals for simplicity, but ideally should fetch decimals too
         setPepeBalance({ value: pepeValue, decimals: 18 })
         setUsdcBalance({ value: usdcValue, decimals: 18 })
       } catch (error) {
@@ -70,10 +78,12 @@ export function AccountInfo() {
 
   if (!ready || !authenticated || !smartWalletAddress) {
     return (
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+      <div className="glass-effect-strong rounded-3xl p-6 md:p-8 shadow-2xl">
         <div className="flex items-center gap-3 mb-4">
-          <Wallet className="text-blue-400" size={24} />
-          <h2 className="text-xl font-bold text-white">Account Info</h2>
+          <div className="p-2 bg-blue-500/20 rounded-xl">
+            <Wallet className="text-blue-400" size={24} />
+          </div>
+          <h2 className="text-2xl font-bold text-white">Account Info</h2>
         </div>
         <p className="text-gray-400">Connect your wallet to view account details</p>
       </div>
@@ -81,34 +91,56 @@ export function AccountInfo() {
   }
 
   return (
-    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-      <div className="flex items-center gap-3 mb-4">
-        <Wallet className="text-blue-400" size={24} />
-        <h2 className="text-xl font-bold text-white">Smart Account</h2>
+    <div className="glass-effect-strong rounded-3xl p-6 md:p-8 shadow-2xl hover:bg-white/15 transition-all duration-300">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-2 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-xl">
+          <Wallet className="text-blue-400" size={24} />
+        </div>
+        <h2 className="text-2xl font-bold text-white">Smart Account</h2>
       </div>
 
       {/* Smart Wallet Address */}
       <div className="mb-6">
-        <p className="text-sm text-gray-400 mb-1">Address</p>
-        <div className="bg-gray-900/50 rounded-lg p-3 font-mono text-sm text-gray-200 break-all">
-          {smartWalletAddress}
+        <p className="text-sm text-gray-400 mb-2 font-medium">Address</p>
+        <div className="glass-effect rounded-xl p-4 group relative">
+          <p className="font-mono text-sm text-gray-200 break-all pr-10">
+            {smartWalletAddress}
+          </p>
+          <button
+            onClick={copyAddress}
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-white/10 rounded-lg transition-colors"
+            title="Copy address"
+          >
+            {copied ? (
+              <Check className="text-green-400" size={18} />
+            ) : (
+              <Copy className="text-gray-400 group-hover:text-white" size={18} />
+            )}
+          </button>
         </div>
-        <p className="text-xs text-gray-500 mt-1">
-          Type: {smartWallet?.smartWalletType || 'kernel'}
+        <p className="text-xs text-gray-500 mt-2">
+          Type: <span className="text-purple-400 font-medium">{smartWallet?.smartWalletType || 'kernel'}</span>
         </p>
       </div>
 
       {/* Token Balances */}
       <div className="space-y-3">
-        <div className="flex items-center gap-2 mb-2">
-          <Coins className="text-green-400" size={20} />
+        <div className="flex items-center gap-2 mb-3">
+          <div className="p-1.5 bg-green-500/20 rounded-lg">
+            <Coins className="text-green-400" size={20} />
+          </div>
           <h3 className="text-lg font-semibold text-white">Token Balances</h3>
         </div>
 
-        <div className="bg-gray-900/50 rounded-lg p-3">
+        <div className="glass-effect rounded-xl p-4 hover:bg-white/10 transition-colors">
           <div className="flex justify-between items-center">
-            <span className="text-gray-300">PEPE</span>
-            <span className="font-semibold text-white">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center">
+                <span className="text-green-400 font-bold text-sm">🐸</span>
+              </div>
+              <span className="text-gray-300 font-medium">PEPE</span>
+            </div>
+            <span className="font-bold text-white text-lg">
               {pepeBalance 
                 ? `${parseFloat(formatUnits(pepeBalance.value, pepeBalance.decimals)).toFixed(2)}`
                 : '0.00'
@@ -117,10 +149,15 @@ export function AccountInfo() {
           </div>
         </div>
 
-        <div className="bg-gray-900/50 rounded-lg p-3">
+        <div className="glass-effect rounded-xl p-4 hover:bg-white/10 transition-colors">
           <div className="flex justify-between items-center">
-            <span className="text-gray-300">USDC</span>
-            <span className="font-semibold text-white">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
+                <span className="text-blue-400 font-bold text-sm">$</span>
+              </div>
+              <span className="text-gray-300 font-medium">USDC</span>
+            </div>
+            <span className="font-bold text-white text-lg">
               {usdcBalance 
                 ? `${parseFloat(formatUnits(usdcBalance.value, usdcBalance.decimals)).toFixed(2)}`
                 : '0.00'
@@ -131,8 +168,8 @@ export function AccountInfo() {
       </div>
 
       {/* Gasless Badge */}
-      <div className="mt-4 bg-green-500/10 border border-green-500/20 rounded-lg p-2 text-center">
-        <p className="text-green-400 text-sm font-medium">⚡ Gasless Transactions Enabled</p>
+      <div className="mt-6 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-xl p-3 text-center">
+        <p className="text-green-400 text-sm font-semibold">⚡ Gasless Transactions Enabled</p>
       </div>
     </div>
   )

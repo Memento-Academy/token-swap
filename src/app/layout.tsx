@@ -1,25 +1,22 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { Providers } from "./providers";
-
-const inter = Inter({ subsets: ["latin"] });
+import type { Metadata } from 'next'
+import { Providers } from './providers'
+import './globals.css'
 
 export const metadata: Metadata = {
-  title: "ZeroDev Gasless Swap",
-  description: "Swap tokens without gas using ZeroDev",
-};
+  title: 'Gasless Token Swap',
+  description: 'Swap tokens without gas fees using Privy and ZeroDev',
+}
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body>
         <Providers>{children}</Providers>
       </body>
     </html>
-  );
+  )
 }

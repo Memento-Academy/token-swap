@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { usePrivy } from "@privy-io/react-auth";
-import { useSmartWallets } from "@privy-io/react-auth/smart-wallets";
+import { useSmartAccount } from "@/context/SmartAccountContext";
 import { formatUnits, createPublicClient, http, parseAbi } from "viem";
 import { sepolia } from "viem/chains";
 import { Wallet, Coins, Copy, Check } from "lucide-react";
@@ -18,12 +18,13 @@ const ERC20_ABI = parseAbi([
 
 export function AccountInfo() {
   const { ready, authenticated, user } = usePrivy();
-  const { client } = useSmartWallets();
+  const { smartAccountAddress, isLoading: isSmartAccountLoading } = useSmartAccount();
 
   // Debug logs
   console.log("Privy ready:", ready);
   console.log("Privy authenticated:", authenticated);
-  console.log("Privy user:", user);
+  console.log("Smart Account Address:", smartAccountAddress);
+
   const [pepeBalance, setPepeBalance] = useState<{
     value: bigint;
     decimals: number;
@@ -34,27 +35,16 @@ export function AccountInfo() {
   } | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Log all linked accounts for debugging
-  console.log("Linked accounts:", user?.linkedAccounts);
-  // Get smart wallet address
-  const smartWallet = user?.linkedAccounts?.find(
-    (account) => account.type === "smart_wallet"
-  );
-  console.log("Smart wallet:", smartWallet);
-
-  const smartWalletAddress = smartWallet?.address as `0x${string}` | undefined;
-  console.log("Smart wallet address:", smartWalletAddress);
-
   const copyAddress = () => {
-    if (smartWalletAddress) {
-      navigator.clipboard.writeText(smartWalletAddress);
+    if (smartAccountAddress) {
+      navigator.clipboard.writeText(smartAccountAddress);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
   useEffect(() => {
-    if (!smartWalletAddress) return;
+    if (!smartAccountAddress) return;
 
     const fetchBalances = async () => {
       try {
@@ -64,21 +54,21 @@ export function AccountInfo() {
         });
 
         // Fetch PEPE balance
-        // @ts-ignore - viem type issue with authorizationList
         const pepeValue = await publicClient.readContract({
           address: PEPE_ADDRESS as `0x${string}`,
           abi: ERC20_ABI,
           functionName: "balanceOf",
-          args: [smartWalletAddress],
+          args: [smartAccountAddress as `0x${string}`],
+          authorizationList: undefined
         });
 
         // Fetch USDC balance
-        // @ts-ignore - viem type issue with authorizationList
         const usdcValue = await publicClient.readContract({
           address: USDC_ADDRESS as `0x${string}`,
           abi: ERC20_ABI,
           functionName: "balanceOf",
-          args: [smartWalletAddress],
+          args: [smartAccountAddress as `0x${string}`],
+          authorizationList: undefined
         });
 
         setPepeBalance({ value: pepeValue, decimals: 18 });
@@ -89,7 +79,7 @@ export function AccountInfo() {
     };
 
     fetchBalances();
-  }, [smartWalletAddress]);
+  }, [smartAccountAddress]);
 
   if (!ready || !authenticated) {
     return (
@@ -107,7 +97,18 @@ export function AccountInfo() {
     );
   }
 
-  if (!smartWalletAddress) {
+  if (isSmartAccountLoading) {
+    return (
+      <div className="glass-effect-strong rounded-3xl p-6 md:p-8 shadow-2xl">
+        <div className="flex items-center gap-3 mb-4">
+           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-400"></div>
+           <h2 className="text-2xl font-bold text-white">Loading Smart Account...</h2>
+        </div>
+      </div>
+    );
+  }
+
+  if (!smartAccountAddress) {
     return (
       <div className="glass-effect-strong rounded-3xl p-6 md:p-8 shadow-2xl">
         <div className="flex items-center gap-3 mb-4">
@@ -117,10 +118,7 @@ export function AccountInfo() {
           <h2 className="text-2xl font-bold text-white">Account Info</h2>
         </div>
         <p className="text-gray-400">
-          No smart wallet found for this account.
-          <br />
-          Please create or link a smart wallet in Privy to view your account
-          details.
+          Initializing Smart Account...
         </p>
       </div>
     );
@@ -140,7 +138,7 @@ export function AccountInfo() {
         <p className="text-sm text-gray-400 mb-2 font-medium">Address</p>
         <div className="glass-effect rounded-xl p-4 group relative">
           <p className="font-mono text-sm text-gray-200 break-all pr-10">
-            {smartWalletAddress}
+            {smartAccountAddress}
           </p>
           <button
             onClick={copyAddress}
@@ -160,7 +158,7 @@ export function AccountInfo() {
         <p className="text-xs text-gray-500 mt-2">
           Type:{" "}
           <span className="text-purple-400 font-medium">
-            {smartWallet?.smartWalletType || "kernel"}
+            Kernel v3 (ZeroDev)
           </span>
         </p>
       </div>

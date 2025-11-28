@@ -20,11 +20,6 @@ export function AccountInfo() {
   const { ready, authenticated, user } = usePrivy();
   const { smartAccountAddress, isLoading: isSmartAccountLoading } = useSmartAccount();
 
-  // Debug logs
-  console.log("Privy ready:", ready);
-  console.log("Privy authenticated:", authenticated);
-  console.log("Smart Account Address:", smartAccountAddress);
-
   const [pepeBalance, setPepeBalance] = useState<{
     value: bigint;
     decimals: number;
@@ -175,9 +170,11 @@ export function AccountInfo() {
         <div className="glass-effect rounded-xl p-4 hover:bg-white/10 transition-colors">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center">
-                <span className="text-green-400 font-bold text-sm">🐸</span>
-              </div>
+              <img
+                src="/icons/pepe-3d-icon.webp"
+                alt="PEPE"
+                className="w-8 h-8 rounded-full bg-white/10 border border-white/20"
+              />
               <span className="text-gray-300 font-medium">PEPE</span>
             </div>
             <span className="font-bold text-white text-lg">
@@ -193,9 +190,11 @@ export function AccountInfo() {
         <div className="glass-effect rounded-xl p-4 hover:bg-white/10 transition-colors">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
-                <span className="text-blue-400 font-bold text-sm">$</span>
-              </div>
+              <img
+                src="/icons/usdc-3d-icon.webp"
+                alt="USDC"
+                className="w-8 h-8 rounded-full bg-white/10 border border-white/20"
+              />
               <span className="text-gray-300 font-medium">USDC</span>
             </div>
             <span className="font-bold text-white text-lg">

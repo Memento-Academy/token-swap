@@ -9,6 +9,7 @@ import { sepolia } from 'viem/chains';
 interface SmartAccountContextType {
   smartAccountAddress: string | null;
   kernelClient: any | null;
+  account: any | null;
   isLoading: boolean;
   error: Error | null;
 }
@@ -16,6 +17,7 @@ interface SmartAccountContextType {
 const SmartAccountContext = createContext<SmartAccountContextType>({
   smartAccountAddress: null,
   kernelClient: null,
+  account: null,
   isLoading: false,
   error: null,
 });
@@ -27,6 +29,7 @@ export const SmartAccountProvider = ({ children }: { children: React.ReactNode }
   const { wallets } = useWallets();
   const [smartAccountAddress, setSmartAccountAddress] = useState<string | null>(null);
   const [kernelClient, setKernelClient] = useState<any | null>(null);
+  const [account, setAccount] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -87,10 +90,11 @@ export const SmartAccountProvider = ({ children }: { children: React.ReactNode }
           transport: custom(provider)
         });
 
-        const { account, kernelClient } = await createZeroDevClient(walletClient);
+        const { account: kernelAccount, kernelClient } = await createZeroDevClient(walletClient);
         
         setKernelClient(kernelClient);
-        setSmartAccountAddress(account.address);
+        setAccount(kernelAccount);
+        setSmartAccountAddress(kernelAccount.address);
         
       } catch (err: any) {
         console.error('❌ Error creating smart account:', err);
@@ -108,6 +112,7 @@ export const SmartAccountProvider = ({ children }: { children: React.ReactNode }
       value={{
         smartAccountAddress,
         kernelClient,
+        account,
         isLoading,
         error,
       }}

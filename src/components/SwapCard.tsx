@@ -1,25 +1,29 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { useSmartWallets } from "@privy-io/react-auth/smart-wallets";
-import { parseUnits, encodeFunctionData, parseAbi } from "viem";
+import { parseUnits, encodeFunctionData, parseAbi, formatUnits, createPublicClient, http } from "viem";
+import { sepolia } from "viem/chains";
 import { ArrowDownUp, Loader2, ExternalLink, Info } from "lucide-react";
+import { useSmartAccount } from "@/context/SmartAccountContext";
 
 // Token addresses on Sepolia
-const PEPE_ADDRESS = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238";
-const USDC_ADDRESS = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238";
+const PEPE_ADDRESS = process.env.NEXT_PUBLIC_PEPE_ADDRESS || "0xab70891DBdE676FA2395DF540AB85eE1E44Ac1F1";
+const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS || "0xb93f0EC84BCAc58E07287fB38d5B87fedf26C3f4";
 
 // ERC-20 ABI for approve and transfer
 const ERC20_ABI = parseAbi([
   "function approve(address spender, uint256 amount) returns (bool)",
   "function transfer(address to, uint256 amount) returns (bool)",
+  "function balanceOf(address owner) view returns (uint256)",
 ]);
 
 export function SwapCard() {
   const { authenticated } = usePrivy();
   // Cast to any to avoid "Type instantiation is excessively deep" error with viem types
   const { client } = useSmartWallets() as { client: any };
+  const { smartAccountAddress } = useSmartAccount();
 
   const [fromToken, setFromToken] = useState<"PEPE" | "USDC">("PEPE");
   const [toToken, setToToken] = useState<"PEPE" | "USDC">("USDC");
@@ -30,6 +34,8 @@ export function SwapCard() {
   const [amount, setAmount] = useState("");
   const [isSwapping, setIsSwapping] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [pepeBalance, setPepeBalance] = useState<string>("0");
+  const [usdcBalance, setUsdcBalance] = useState<string>("0");
 
   const handleSwap = async () => {
     console.log("Swap button clicked", {
@@ -58,8 +64,9 @@ export function SwapCard() {
       const fromAddress = fromToken === "PEPE" ? PEPE_ADDRESS : USDC_ADDRESS;
       const toAddress = toToken === "PEPE" ? PEPE_ADDRESS : USDC_ADDRESS;
 
-      // Parse amount (assuming 18 decimals for both tokens)
-      const amountWei = parseUnits(amount, 18);
+      // Parse amount (PEPE has 18 decimals, USDC has 6)
+      const decimals = fromToken === "USDC" ? 6 : 18;
+      const amountWei = parseUnits(amount, decimals);
 
       // For demo purposes, we'll just do a simple transfer
       // In a real app, you'd interact with a DEX contract
@@ -90,6 +97,47 @@ export function SwapCard() {
     setFromToken(toToken);
     setToToken(fromToken);
   };
+
+  const fetchBalances = async () => {
+    if (!smartAccountAddress) return;
+
+    try {
+      const publicClient = createPublicClient({
+        chain: sepolia,
+        transport: http(`https://eth-sepolia.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_API_KEY}`),
+      });
+
+      const pepeValue = await publicClient.readContract({
+        address: PEPE_ADDRESS as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: "balanceOf",
+        args: [smartAccountAddress as `0x${string}`],
+        authorizationList: undefined,
+      });
+
+      const usdcValue = await publicClient.readContract({
+        address: USDC_ADDRESS as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: "balanceOf",
+        args: [smartAccountAddress as `0x${string}`],
+        authorizationList: undefined,
+      });
+
+      setPepeBalance(formatUnits(pepeValue, 18));
+      setUsdcBalance(formatUnits(usdcValue, 6));
+    } catch (error) {
+      console.error("Error fetching balances:", error);
+    }
+  };
+
+  const setMaxAmount = () => {
+    const balance = fromToken === "PEPE" ? pepeBalance : usdcBalance;
+    setAmount(balance);
+  };
+
+  useEffect(() => {
+    fetchBalances();
+  }, [smartAccountAddress]);
 
   return (
     <div className="glass-effect-strong rounded-3xl p-6 md:p-8 shadow-2xl hover:bg-white/15 transition-all duration-300">
@@ -163,42 +211,56 @@ export function SwapCard() {
               </div>
             )}
           </div>
-          <div className="relative flex items-center group">
-            <input
-              type="number"
-              value={amount}
-              min="0"
-              onChange={(e) => {
-                // Only allow positive numbers and empty string, and prevent leading zeros (except for '0.' decimal)
-                let val = e.target.value;
-                if (val === "") {
-                  setAmount("");
-                  return;
-                }
-                // Remove leading zeros unless it's '0.'
-                if (/^0\d+/.test(val)) {
-                  val = val.replace(/^0+/, "");
-                }
-                // Allow '0.' for decimals
-                if (val.startsWith("0") && val[1] === ".") {
-                  // valid, do nothing
-                } else if (val.startsWith("0") && val.length > 1) {
-                  val = val.replace(/^0+/, "");
-                }
-                if (/^\d*\.?\d*$/.test(val) && Number(val) >= 0) {
-                  setAmount(val);
-                }
-              }}
-              placeholder="0.0"
-              className="w-full bg-transparent text-white text-3xl font-bold focus:outline-none placeholder-gray-600"
-              disabled={!authenticated}
-            />
-            <span className="ml-2 relative flex items-center">
-              <Info className="text-blue-400 cursor-pointer" size={20} />
-              <span className="absolute left-1/2 top-full mt-2 w-56 -translate-x-1/2 rounded-lg bg-gray-900 text-gray-200 text-xs px-3 py-2 shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-30 border border-white/10">
-                Introduce la cantidad de cripto que quieres swapear.
-              </span>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-gray-400">
+              Balance: {fromToken === "PEPE" ? parseFloat(pepeBalance).toFixed(2) : parseFloat(usdcBalance).toFixed(2)} {fromToken}
             </span>
+            <button
+              onClick={setMaxAmount}
+              disabled={!authenticated}
+              className="text-xs bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 px-2 py-1 rounded-md transition-colors border border-blue-500/30 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              MAX
+            </button>
+          </div>
+          <div className="bg-black/30 border border-white/10 rounded-xl p-4">
+            <div className="relative flex items-center group">
+              <input
+                type="number"
+                value={amount}
+                min="0"
+                onChange={(e) => {
+                  // Only allow positive numbers and empty string, and prevent leading zeros (except for '0.' decimal)
+                  let val = e.target.value;
+                  if (val === "") {
+                    setAmount("");
+                    return;
+                  }
+                  // Remove leading zeros unless it's '0.'
+                  if (/^0\d+/.test(val)) {
+                    val = val.replace(/^0+/, "");
+                  }
+                  // Allow '0.' for decimals
+                  if (val.startsWith("0") && val[1] === ".") {
+                    // valid, do nothing
+                  } else if (val.startsWith("0") && val.length > 1) {
+                    val = val.replace(/^0+/, "");
+                  }
+                  if (/^\d*\.?\d*$/.test(val) && Number(val) >= 0) {
+                    setAmount(val);
+                  }
+                }}
+                placeholder="0.0"
+                className="w-full bg-transparent text-white text-3xl font-bold focus:outline-none placeholder-gray-600"
+                disabled={!authenticated}
+              />
+              <span className="ml-2 relative flex items-center">
+                <Info className="text-blue-400 cursor-pointer" size={20} />
+                <span className="absolute left-1/2 top-full mt-2 w-56 -translate-x-1/2 rounded-lg bg-gray-900 text-gray-200 text-xs px-3 py-2 shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-30 border border-white/10">
+                  Introduce la cantidad de cripto que quieres swapear.
+                </span>
+              </span>
+            </div>
           </div>
         </div>
       </div>

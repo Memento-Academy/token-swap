@@ -140,7 +140,7 @@ export function SwapCard() {
   }, [smartAccountAddress]);
 
   return (
-    <div className="glass-effect-strong rounded-3xl p-6 md:p-8 shadow-2xl hover:bg-white/15 transition-all duration-300">
+    <div className="bg-black/40 backdrop-blur-xl rounded-3xl p-6 md:p-8 shadow-2xl border border-white/20 hover:border-white/30 transition-all duration-300">
       <h2 className="text-2xl font-bold text-white mb-6 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
         Swap Tokens
       </h2>

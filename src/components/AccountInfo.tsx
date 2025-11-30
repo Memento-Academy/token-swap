@@ -187,7 +187,7 @@ export function AccountInfo() {
   }
 
   return (
-    <div className="glass-effect-strong rounded-3xl p-6 md:p-8 shadow-2xl">
+    <div className="bg-black/40 backdrop-blur-xl rounded-3xl p-6 md:p-8 shadow-2xl border border-white/20">
       <div className="flex items-center gap-3 mb-6">
         <div className="p-2 bg-blue-500/20 rounded-xl">
           <Wallet className="text-blue-400" size={24} />

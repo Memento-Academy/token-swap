@@ -27,9 +27,18 @@ async function main() {
 
   console.log("\nDeploying SimpleSwapRouter...");
   const SimpleSwapRouter = await ethers.getContractFactory("SimpleSwapRouter");
-  const router = await SimpleSwapRouter.deploy(pepe.address, usdc.address);
+  const router = await SimpleSwapRouter.deploy(); // No constructor arguments
   await router.deployed();
   console.log("✅ SimpleSwapRouter deployed to:", router.address);
+
+  // Mint some tokens to the router for liquidity
+  console.log("\nAdding liquidity to router...");
+  const liquidityAmount = ethers.utils.parseUnits("1000000", 18); // 1M tokens
+  const liquidityAmountUSDC = ethers.utils.parseUnits("1000000", 6); // 1M USDC (6 decimals)
+
+  await (await pepe.mint(router.address, liquidityAmount)).wait();
+  await (await usdc.mint(router.address, liquidityAmountUSDC)).wait();
+  console.log("✅ Liquidity added to router");
 
   console.log("\n🎉 Deployment complete!");
   console.log("\n📋 Add these to your .env.local:");

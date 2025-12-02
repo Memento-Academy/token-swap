@@ -1,0 +1,25 @@
+# Hardhat files
+contracts/
+scripts/
+test/
+hardhat.config.js
+hardhat.config.ts
+cache/
+artifacts/
+
+# Documentation
+*.md
+HARDHAT_README.md
+README-DEPLOYMENT.md
+
+# Development files
+.env.local
+.env
+
+# Git
+.git/
+.gitignore
+
+# Other
+node_modules/
+.DS_Store

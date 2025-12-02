@@ -7,6 +7,7 @@ import { formatUnits, createPublicClient, http, parseAbi, parseUnits, encodeFunc
 import { sepolia } from "viem/chains";
 import { Wallet, Coins, Copy, Check } from "lucide-react";
 import { SuccessModal } from "./SuccessModal";
+import { FaucetModal } from "./FaucetModal";
 
 // Token addresses on Sepolia
 const PEPE_ADDRESS = process.env.NEXT_PUBLIC_PEPE_ADDRESS || "0xab70891DBdE676FA2395DF540AB85eE1E44Ac1F1";
@@ -34,6 +35,8 @@ export function AccountInfo() {
   const [isFaucetLoading, setIsFaucetLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
+  const [showFaucetModal, setShowFaucetModal] = useState(false);
+  const [faucetModalStatus, setFaucetModalStatus] = useState<"loading" | "success" | "error">("loading");
 
   const copyAddress = () => {
     if (smartAccountAddress) {
@@ -85,12 +88,16 @@ export function AccountInfo() {
     if (!kernelClient || !smartAccountAddress || !account) return;
     
     setIsFaucetLoading(true);
+    setShowFaucetModal(true);
+    setFaucetModalStatus("loading");
+    
     try {
       console.log("Claiming faucet...");
       
-      // Amount to mint: 500 tokens (well within 1000 limit)
-      const amountPEPE = parseUnits("500", 18);
-      const amountUSDC = parseUnits("500", 6);
+      // Amount to mint: 100 USDC and equivalent PEPE at 0.000011 rate
+      // 100 / 0.000011 = ~9,090,909 PEPE
+      const amountPEPE = parseUnits("9090909", 18);
+      const amountUSDC = parseUnits("100", 6);
 
       console.log("Claiming PEPE...");
       const txHashPepe = await kernelClient.sendTransaction({
@@ -131,13 +138,13 @@ export function AccountInfo() {
       // Refresh balances
       await fetchBalances();
       setLastTxHash(txHashPepe);
-      setShowSuccessModal(true);
+      setFaucetModalStatus("success");
       
     } catch (error: any) {
       console.error("Faucet error full object:", error);
       console.error("Faucet error message:", error?.message);
       console.error("Faucet error cause:", error?.cause);
-      alert(`Error claiming tokens: ${error?.message || "Unknown error"}`);
+      setFaucetModalStatus("error");
     } finally {
       setIsFaucetLoading(false);
     }
@@ -299,13 +306,14 @@ export function AccountInfo() {
         </div>
       </div>
 
-      {/* Success Modal */}
-      <SuccessModal
-        isOpen={showSuccessModal}
-        onClose={() => setShowSuccessModal(false)}
-        title="Tokens Received!"
-        message="500 PEPE and 500 USDC have been successfully added to your account."
+
+
+      {/* Faucet Modal */}
+      <FaucetModal
+        isOpen={showFaucetModal}
+        status={faucetModalStatus}
         txHash={lastTxHash || undefined}
+        onClose={() => setShowFaucetModal(false)}
       />
     </div>
   );

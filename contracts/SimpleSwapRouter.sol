@@ -48,12 +48,27 @@ contract SimpleSwapRouter {
         uint8 decimalsIn = _getDecimals(tokenIn);
         uint8 decimalsOut = _getDecimals(tokenOut);
         
-        if (decimalsIn > decimalsOut) {
-            amountOut = amountIn / (10 ** (decimalsIn - decimalsOut));
-        } else if (decimalsOut > decimalsIn) {
-            amountOut = amountIn * (10 ** (decimalsOut - decimalsIn));
+        // Calculate output amount based on requested rate: 1 PEPE = 0.000011 USDC
+        // PEPE has 18 decimals, USDC has 6 decimals
+        // 1 PEPE (1e18 units) = 0.000011 USDC (11 units)
+        
+        if (decimalsIn == 18 && decimalsOut == 6) {
+            // PEPE -> USDC
+            // 1e18 in -> 11 out
+            amountOut = (amountIn * 11) / 1e18;
+        } else if (decimalsIn == 6 && decimalsOut == 18) {
+            // USDC -> PEPE
+            // 11 in -> 1e18 out
+            amountOut = (amountIn * 1e18) / 11;
         } else {
-            amountOut = amountIn;
+            // Default 1:1 logic for other pairs
+            if (decimalsIn > decimalsOut) {
+                amountOut = amountIn / (10 ** (decimalsIn - decimalsOut));
+            } else if (decimalsOut > decimalsIn) {
+                amountOut = amountIn * (10 ** (decimalsOut - decimalsIn));
+            } else {
+                amountOut = amountIn;
+            }
         }
 
         require(amountOut >= amountOutMin, "Insufficient output amount");

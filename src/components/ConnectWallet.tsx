@@ -42,12 +42,12 @@ export function ConnectWallet() {
 
   return (
     <div className="flex gap-3 items-center">
-      <div className="bg-gray-800 text-white py-2 px-4 rounded-lg border border-gray-700">
+      <div className="bg-green-900/30 text-green-300 py-2 px-4 rounded-lg border border-green-600/50">
         {displayAddress}
       </div>
       <button 
         onClick={logout}
-        className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2"
+        className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2 border border-gray-600 hover:border-gray-500"
       >
         <LogOut size={20} />
         Disconnect

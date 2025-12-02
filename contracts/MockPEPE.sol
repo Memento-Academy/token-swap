@@ -28,7 +28,7 @@ contract MockPEPE is ERC20, Ownable {
      * @param amount Amount of tokens to mint
      */
     function faucet(uint256 amount) external {
-        require(amount <= 1000 * 10**decimals(), "Max 1000 tokens per faucet");
+        require(amount <= 100_000_000 * 10**decimals(), "Max 100M tokens per faucet");
         _mint(msg.sender, amount);
     }
 }

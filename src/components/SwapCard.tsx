@@ -2,15 +2,16 @@
 
 import { useState, useRef, useEffect } from "react";
 import { usePrivy } from "@privy-io/react-auth";
-import { useSmartWallets } from "@privy-io/react-auth/smart-wallets";
 import { parseUnits, encodeFunctionData, parseAbi, formatUnits, createPublicClient, http } from "viem";
 import { sepolia } from "viem/chains";
 import { ArrowDownUp, Loader2, ExternalLink, Info } from "lucide-react";
 import { useSmartAccount } from "@/context/SmartAccountContext";
+import { SwapLoadingModal } from "./SwapLoadingModal";
 
 // Token addresses on Sepolia
 const PEPE_ADDRESS = process.env.NEXT_PUBLIC_PEPE_ADDRESS || "0xab70891DBdE676FA2395DF540AB85eE1E44Ac1F1";
 const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS || "0xb93f0EC84BCAc58E07287fB38d5B87fedf26C3f4";
+const ROUTER_ADDRESS = process.env.NEXT_PUBLIC_ROUTER_ADDRESS || "0x2efB63030B09CC5152F2F4B54C600d238bbf931E";
 
 // ERC-20 ABI for approve and transfer
 const ERC20_ABI = parseAbi([
@@ -19,11 +20,14 @@ const ERC20_ABI = parseAbi([
   "function balanceOf(address owner) view returns (uint256)",
 ]);
 
+// Router ABI
+const ROUTER_ABI = parseAbi([
+  "function swapExactTokensForTokens(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin) returns (uint256 amountOut)",
+]);
+
 export function SwapCard() {
   const { authenticated } = usePrivy();
-  // Cast to any to avoid "Type instantiation is excessively deep" error with viem types
-  const { client } = useSmartWallets() as { client: any };
-  const { smartAccountAddress } = useSmartAccount();
+  const { smartAccountAddress, kernelClient } = useSmartAccount();
 
   const [fromToken, setFromToken] = useState<"PEPE" | "USDC">("PEPE");
   const [toToken, setToToken] = useState<"PEPE" | "USDC">("USDC");
@@ -36,11 +40,13 @@ export function SwapCard() {
   const [txHash, setTxHash] = useState<string | null>(null);
   const [pepeBalance, setPepeBalance] = useState<string>("0");
   const [usdcBalance, setUsdcBalance] = useState<string>("0");
+  const [showModal, setShowModal] = useState(false);
+  const [modalStatus, setModalStatus] = useState<"loading" | "success" | "error">("loading");
 
   const handleSwap = async () => {
     console.log("Swap button clicked", {
       authenticated,
-      client,
+      kernelClient,
       amount,
       fromToken,
       toToken,
@@ -49,7 +55,7 @@ export function SwapCard() {
       alert("Debes conectar tu wallet para hacer swap.");
       return;
     }
-    if (!client) {
+    if (!kernelClient) {
       alert("No se encontró la smart wallet. Intenta reconectar.");
       return;
     }
@@ -59,6 +65,8 @@ export function SwapCard() {
     }
     try {
       setIsSwapping(true);
+      setShowModal(true);
+      setModalStatus("loading");
       setTxHash(null);
 
       const fromAddress = fromToken === "PEPE" ? PEPE_ADDRESS : USDC_ADDRESS;
@@ -68,26 +76,61 @@ export function SwapCard() {
       const decimals = fromToken === "USDC" ? 6 : 18;
       const amountWei = parseUnits(amount, decimals);
 
-      // For demo purposes, we'll just do a simple transfer
-      // In a real app, you'd interact with a DEX contract
-      const data = encodeFunctionData({
+      // Step 1: Approve router to spend tokens
+      console.log("Approving router...");
+      const approveData = encodeFunctionData({
         abi: ERC20_ABI,
-        functionName: "transfer",
-        args: [toAddress as `0x${string}`, amountWei],
+        functionName: "approve",
+        args: [ROUTER_ADDRESS as `0x${string}`, amountWei],
       });
 
-      // Send transaction using Privy smart wallet client
-      const hash = await client.sendTransaction({
+      const approveHash = await kernelClient.sendTransaction({
         to: fromAddress as `0x${string}`,
-        data,
+        data: approveData,
+        value: 0n,
+      });
+
+      // Wait for approval
+      const publicClient = createPublicClient({
+        chain: sepolia,
+        transport: http(`https://eth-sepolia.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_API_KEY}`),
+      });
+
+      await publicClient.waitForTransactionReceipt({ hash: approveHash });
+      console.log("Approval confirmed");
+
+      // Step 2: Execute swap through router
+      console.log("Executing swap...");
+
+      const swapData = encodeFunctionData({
+        abi: ROUTER_ABI,
+        functionName: "swapExactTokensForTokens",
+        args: [
+          fromAddress as `0x${string}`,
+          toAddress as `0x${string}`,
+          amountWei,
+          0n, // amountOutMin (0 for demo, should calculate slippage in production)
+        ],
+      });
+
+      const hash = await kernelClient.sendTransaction({
+        to: ROUTER_ADDRESS as `0x${string}`,
+        data: swapData,
         value: 0n,
       });
 
       setTxHash(hash);
+
+      await publicClient.waitForTransactionReceipt({ hash });
+      
+      // Refresh balances
+      await fetchBalances();
+
+      setModalStatus("success");
       setAmount("");
     } catch (error) {
       console.error("Swap failed:", error);
-      alert("Swap failed. Check console for details.");
+      setModalStatus("error");
     } finally {
       setIsSwapping(false);
     }
@@ -102,6 +145,8 @@ export function SwapCard() {
     if (!smartAccountAddress) return;
 
     try {
+      console.log("Fetching balances for:", smartAccountAddress);
+      
       const publicClient = createPublicClient({
         chain: sepolia,
         transport: http(`https://eth-sepolia.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_API_KEY}`),
@@ -123,8 +168,14 @@ export function SwapCard() {
         authorizationList: undefined,
       });
 
-      setPepeBalance(formatUnits(pepeValue, 18));
-      setUsdcBalance(formatUnits(usdcValue, 6));
+      const formattedPepe = formatUnits(pepeValue, 18);
+      const formattedUsdc = formatUnits(usdcValue, 6);
+      
+      console.log("Formatted PEPE:", formattedPepe);
+      console.log("Formatted USDC:", formattedUsdc);
+
+      setPepeBalance(formattedPepe);
+      setUsdcBalance(formattedUsdc);
     } catch (error) {
       console.error("Error fetching balances:", error);
     }
@@ -132,6 +183,7 @@ export function SwapCard() {
 
   const setMaxAmount = () => {
     const balance = fromToken === "PEPE" ? pepeBalance : usdcBalance;
+    console.log("Setting max amount:", balance);
     setAmount(balance);
   };
 
@@ -213,11 +265,10 @@ export function SwapCard() {
           </div>
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-gray-400">
-              Balance: {fromToken === "PEPE" ? parseFloat(pepeBalance).toFixed(2) : parseFloat(usdcBalance).toFixed(2)} {fromToken}
+              Balance: {fromToken === "PEPE" ? pepeBalance : usdcBalance} {fromToken}
             </span>
             <button
               onClick={setMaxAmount}
-              disabled={!authenticated}
               className="text-xs bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 px-2 py-1 rounded-md transition-colors border border-blue-500/30 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               MAX
@@ -348,7 +399,11 @@ export function SwapCard() {
             )}
           </div>
           <div className="text-3xl font-bold text-gray-400">
-            {amount || "0.0"}
+            {amount ? (
+              fromToken === "PEPE" 
+                ? (parseFloat(amount) * 0.000011).toFixed(6) 
+                : (parseFloat(amount) / 0.000011).toFixed(2)
+            ) : "0.0"}
           </div>
         </div>
       </div>
@@ -371,22 +426,13 @@ export function SwapCard() {
         )}
       </button>
 
-      {/* Transaction Hash */}
-      {txHash && (
-        <div className="mt-6 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-2xl p-4">
-          <p className="text-green-400 text-sm font-semibold mb-2 flex items-center gap-2">
-            <span className="text-lg">✓</span> Swap Successful!
-          </p>
-          <a
-            href={`https://sepolia.etherscan.io/tx/${txHash}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-400 hover:text-blue-300 text-xs break-all underline flex items-center gap-1 hover:gap-2 transition-all"
-          >
-            View on Explorer <ExternalLink size={14} />
-          </a>
-        </div>
-      )}
+      {/* Swap Loading Modal */}
+      <SwapLoadingModal
+        isOpen={showModal}
+        status={modalStatus}
+        txHash={txHash || undefined}
+        onClose={() => setShowModal(false)}
+      />
 
       {/* Gasless Info */}
       {authenticated && (

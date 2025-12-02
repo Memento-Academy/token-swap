@@ -41,7 +41,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.22",
-    "chai": "^6.2.1",
+    "chai": "^4.5.0",
     "dotenv": "^17.2.3",
     "eslint": "^9",
     "eslint-config-next": "16.0.3",
@@ -54,5 +54,8 @@
     "ts-node": "^10.9.2",
     "typechain": "^8.3.2",
     "typescript": "^5"
+  },
+  "overrides": {
+    "chai": "^4.5.0"
   }
 }

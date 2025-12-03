@@ -8,13 +8,20 @@ export default function Home() {
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
         <header className="flex flex-col md:flex-row justify-between items-center mb-12 gap-4">
-          <div className="text-center md:text-left">
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-green-400 via-blue-500 to-purple-600 bg-clip-text text-transparent mb-2">
-              ⚡ Gasless Token Swap
-            </h1>
-            <p className="text-gray-400 text-sm md:text-base">
-              Swap tokens without holding any ETH
-            </p>
+          <div className="flex items-center gap-4">
+            <img 
+              src="/favicon/apple-touch-icon.png" 
+              alt="Logo" 
+              className="w-16 h-16 md:w-20 md:h-20 drop-shadow-lg hover:scale-105 transition-transform duration-300" 
+            />
+            <div className="text-left flex flex-col justify-center">
+              <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-green-400 via-blue-500 to-purple-600 bg-clip-text text-transparent leading-tight">
+                Gasless Token Swap
+              </h1>
+              <p className="text-gray-400 text-xs md:text-sm font-medium leading-tight">
+                Swap tokens without holding any ETH
+              </p>
+            </div>
           </div>
           <ConnectWallet />
         </header>

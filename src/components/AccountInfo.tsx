@@ -205,8 +205,11 @@ export function AccountInfo() {
       <div className="mb-8">
         <p className="text-sm text-gray-400 mb-2 font-medium">Address</p>
         <div className="relative group">
-          <div className="w-full bg-black/30 border border-white/10 rounded-xl p-4 font-mono text-sm text-gray-300 break-all">
-            {smartAccountAddress}
+          <div className="w-full bg-black/30 border border-white/10 rounded-xl p-4 pr-12 font-mono text-sm text-gray-300 flex items-center justify-between">
+            <span className="hidden md:block">{smartAccountAddress}</span>
+            <span className="md:hidden">
+              {smartAccountAddress.slice(0, 6)}...{smartAccountAddress.slice(-4)}
+            </span>
           </div>
           <button
             onClick={copyAddress}

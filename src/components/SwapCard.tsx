@@ -27,7 +27,7 @@ const ROUTER_ABI = parseAbi([
 
 export function SwapCard() {
   const { authenticated } = usePrivy();
-  const { smartAccountAddress, kernelClient } = useSmartAccount();
+  const { smartAccountAddress, kernelClient, balanceRefreshTrigger, triggerBalanceRefresh } = useSmartAccount();
 
   const [fromToken, setFromToken] = useState<"PEPE" | "USDC">("PEPE");
   const [toToken, setToToken] = useState<"PEPE" | "USDC">("USDC");
@@ -125,6 +125,7 @@ export function SwapCard() {
       
       // Refresh balances
       await fetchBalances();
+      triggerBalanceRefresh(); // Notify other components to refresh balances
 
       setModalStatus("success");
       setAmount("");
@@ -189,7 +190,7 @@ export function SwapCard() {
 
   useEffect(() => {
     fetchBalances();
-  }, [smartAccountAddress]);
+  }, [smartAccountAddress, balanceRefreshTrigger]);
 
   return (
     <div className="bg-black/40 backdrop-blur-xl rounded-3xl p-6 md:p-8 shadow-2xl border border-white/20 hover:border-white/30 transition-all duration-300">

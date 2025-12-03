@@ -12,6 +12,8 @@ interface SmartAccountContextType {
   account: any | null;
   isLoading: boolean;
   error: Error | null;
+  balanceRefreshTrigger: number;
+  triggerBalanceRefresh: () => void;
 }
 
 const SmartAccountContext = createContext<SmartAccountContextType>({
@@ -20,6 +22,8 @@ const SmartAccountContext = createContext<SmartAccountContextType>({
   account: null,
   isLoading: false,
   error: null,
+  balanceRefreshTrigger: 0,
+  triggerBalanceRefresh: () => {},
 });
 
 export const useSmartAccount = () => useContext(SmartAccountContext);
@@ -32,6 +36,11 @@ export const SmartAccountProvider = ({ children }: { children: React.ReactNode }
   const [account, setAccount] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [balanceRefreshTrigger, setBalanceRefreshTrigger] = useState(0);
+
+  const triggerBalanceRefresh = () => {
+    setBalanceRefreshTrigger(prev => prev + 1);
+  };
 
   useEffect(() => {
     const setupSmartAccount = async () => {
@@ -115,6 +124,8 @@ export const SmartAccountProvider = ({ children }: { children: React.ReactNode }
         account,
         isLoading,
         error,
+        balanceRefreshTrigger,
+        triggerBalanceRefresh,
       }}
     >
       {children}

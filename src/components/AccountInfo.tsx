@@ -6,7 +6,6 @@ import { useSmartAccount } from "@/context/SmartAccountContext";
 import { formatUnits, createPublicClient, http, parseAbi, parseUnits, encodeFunctionData } from "viem";
 import { sepolia } from "viem/chains";
 import { Wallet, Coins, Copy, Check } from "lucide-react";
-import { SuccessModal } from "./SuccessModal";
 import { FaucetModal } from "./FaucetModal";
 
 // Token addresses on Sepolia
@@ -21,7 +20,7 @@ const ERC20_ABI = parseAbi([
 
 export function AccountInfo() {
   const { ready, authenticated, user } = usePrivy();
-  const { smartAccountAddress, isLoading: isSmartAccountLoading, kernelClient, account } = useSmartAccount();
+  const { smartAccountAddress, isLoading: isSmartAccountLoading, kernelClient, account, triggerBalanceRefresh, balanceRefreshTrigger } = useSmartAccount();
 
   const [pepeBalance, setPepeBalance] = useState<{
     value: bigint;
@@ -82,7 +81,7 @@ export function AccountInfo() {
 
   useEffect(() => {
     fetchBalances();
-  }, [smartAccountAddress]);
+  }, [smartAccountAddress, balanceRefreshTrigger]);
 
   const handleFaucet = async () => {
     if (!kernelClient || !smartAccountAddress || !account) return;
@@ -137,6 +136,7 @@ export function AccountInfo() {
       
       // Refresh balances
       await fetchBalances();
+      triggerBalanceRefresh(); // Notify other components to refresh balances
       setLastTxHash(txHashPepe);
       setFaucetModalStatus("success");
       

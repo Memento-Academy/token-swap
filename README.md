@@ -11,7 +11,7 @@
 </div>
 
 <p align="center">
-    <i>A gasless token swap decentralized application built with Next.js, Privy, and ZeroDev on Ethereum Sepolia testnet. Experience seamless token swaps without needing ETH for gas fees.</i>
+    <i>A gasless token swap decentralized application built with Next.js, Privy, and ZeroDev on Ethereum Sepolia testnet. Experience seamless token swaps without needing ETH for gas fees. Try it!</i>
 </p>
 
 ## Features
